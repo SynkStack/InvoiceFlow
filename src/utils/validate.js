@@ -1,7 +1,7 @@
-// Parses req.body with a Zod schema.
+// Parses input with a Zod schema.
 // Returns clean data, or sends a 400 and returns null.
-function validateBody(schema, req, res) {
-  const result = schema.safeParse(req.body);
+function parse(schema, input, res) {
+  const result = schema.safeParse(input);
   if (!result.success) {
     res.status(400).json({
       error: 'Validation failed',
@@ -15,4 +15,7 @@ function validateBody(schema, req, res) {
   return result.data;
 }
 
-module.exports = { validateBody };
+const validateBody = (schema, req, res) => parse(schema, req.body, res);
+const validateQuery = (schema, req, res) => parse(schema, req.query, res);
+
+module.exports = { validateBody, validateQuery };
