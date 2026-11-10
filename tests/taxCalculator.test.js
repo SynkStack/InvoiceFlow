@@ -22,3 +22,32 @@ describe('subtotal', () => {
     expect(() => calculateLineTotal({ quantity: 0, unit_price_cents: 100 })).toThrow();
   });
 });
+
+describe('tax and totals', () => {
+  it('calculates 18% tax', () => {
+    expect(calculateTax(10000)).toBe(1800);
+  });
+
+  it('rounds to the nearest cent', () => {
+    expect(calculateTax(15)).toBe(3); // 2.7 -> 3
+  });
+
+  it('rounds tax once on the subtotal, not per line', () => {
+    // 3 lines of 1 cent: per-line rounding would give 0 tax, subtotal rounding gives 1
+    const items = [1, 2, 3].map(() => ({ quantity: 1, unit_price_cents: 1 }));
+    expect(calculateTotals(items).tax_cents).toBe(1);
+  });
+
+  it('returns subtotal, tax and total', () => {
+    const items = [{ quantity: 2, unit_price_cents: 5000 }];
+    expect(calculateTotals(items)).toEqual({
+      subtotal_cents: 10000,
+      tax_cents: 1800,
+      total_cents: 11800,
+    });
+  });
+
+  it('supports a custom rate in bps', () => {
+    expect(calculateTax(10000, 500)).toBe(500); // 5%
+  });
+});
