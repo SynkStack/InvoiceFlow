@@ -18,5 +18,26 @@ function calculateLineTotal(item) {
 function calculateSubtotal(items) {
   return items.reduce((sum, item) => sum + calculateLineTotal(item), 0);
 }
+const DEFAULT_TAX_RATE_BPS = 1800; // 18%
 
-module.exports = { calculateLineTotal, calculateSubtotal };
+// Tax on the subtotal, rounded ONCE to the nearest cent
+function calculateTax(subtotalCents, rateBps = DEFAULT_TAX_RATE_BPS) {
+  assertInt(subtotalCents, 'subtotalCents', 0);
+  assertInt(rateBps, 'rateBps', 0);
+  return Math.round((subtotalCents * rateBps) / 10000);
+}
+
+// The three numbers stored on an invoice
+function calculateTotals(items, rateBps = DEFAULT_TAX_RATE_BPS) {
+  const subtotal_cents = calculateSubtotal(items);
+  const tax_cents = calculateTax(subtotal_cents, rateBps);
+  return { subtotal_cents, tax_cents, total_cents: subtotal_cents + tax_cents };
+}
+
+module.exports = {
+  DEFAULT_TAX_RATE_BPS,
+  calculateLineTotal,
+  calculateSubtotal,
+  calculateTax,
+  calculateTotals,
+};
