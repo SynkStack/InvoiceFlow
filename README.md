@@ -3,8 +3,11 @@ REST API for customers and invoices. Part of NovaStack Technologies.
 
 ## Run
 ```
-npm install
+docker compose up -d
+docker compose exec db createdb -U invoiceflow invoiceflow_test
 cp .env.example .env
+npm install
+npm run db:migrate
 npm start
 npm test
 ```
