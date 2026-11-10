@@ -5,8 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "jest",
+    "test": "jest --runInBand",
     "db:migrate": "node src/db/migrate.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": ["./tests/setupEnv.js"]
   },
   "keywords": [],
   "author": "",
