@@ -9,6 +9,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/customers', require('./routes/customers'));
+app.use('/invoices', require('./routes/invoices'));
 
 // Must be last; Express recognizes it by its 4 arguments
 app.use((err, req, res, next) => {
