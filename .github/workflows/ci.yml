@@ -37,4 +37,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm test
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test   # only build the image if the tests passed
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t invoiceflow .
