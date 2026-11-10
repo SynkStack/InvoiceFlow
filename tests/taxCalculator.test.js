@@ -1,4 +1,9 @@
-const { calculateLineTotal, calculateSubtotal } = require('../src/services/taxCalculator');
+const {
+  calculateLineTotal,
+  calculateSubtotal,
+  calculateTax,
+  calculateTotals,
+} = require('../src/services/taxCalculator');
 
 describe('subtotal', () => {
   it('multiplies quantity by unit price', () => {
