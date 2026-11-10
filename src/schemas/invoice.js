@@ -22,4 +22,9 @@ const invoiceSchema = z.object({
   line_items: z.array(lineItemSchema).min(1, 'at least one line item is required'),
 });
 
-module.exports = { invoiceSchema };
+// Body for PATCH /invoices/:id/status
+const statusSchema = z.object({
+  status: z.enum(['draft', 'sent', 'paid', 'overdue']),
+});
+
+module.exports = { invoiceSchema, statusSchema };

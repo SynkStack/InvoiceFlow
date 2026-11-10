@@ -2,11 +2,34 @@ const express = require('express');
 const pool = require('../db/pool');
 const asyncHandler = require('../utils/asyncHandler');
 const { validateBody } = require('../utils/validate');
-const { invoiceSchema } = require('../schemas/invoice');
+const { invoiceSchema, statusSchema } = require('../schemas/invoice');
 const { calculateTotals } = require('../services/taxCalculator');
+const { canTransition } = require('../services/invoiceStatus');
 
 const router = express.Router();
 const MAX_INT = 2147483647; // largest value a Postgres INTEGER can hold
+
+// Validate :id on every route that has it
+router.param('id', (req, res, next, value) => {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id < 1 || id > MAX_INT) {
+    return res.status(400).json({ error: 'Invalid id' });
+  }
+  req.invoiceId = id;
+  next();
+});
+
+// Fetch an invoice together with its line items
+async function findInvoice(id) {
+  const invoice = await pool.query('SELECT * FROM invoices WHERE id = $1', [id]);
+  if (invoice.rows.length === 0) return null;
+  const items = await pool.query(
+    `SELECT id, description, quantity, unit_price_cents
+     FROM line_items WHERE invoice_id = $1 ORDER BY id`,
+    [id]
+  );
+  return { ...invoice.rows[0], line_items: items.rows };
+}
 
 // Create an invoice
 router.post('/', asyncHandler(async (req, res) => {
@@ -53,33 +76,38 @@ router.post('/', asyncHandler(async (req, res) => {
   res.status(201).json(await findInvoice(invoiceId));
 }));
 
-// Fetch an invoice together with its line items
-async function findInvoice(id) {
-  const invoice = await pool.query('SELECT * FROM invoices WHERE id = $1', [id]);
-  if (invoice.rows.length === 0) return null;
-  const items = await pool.query(
-    `SELECT id, description, quantity, unit_price_cents
-     FROM line_items WHERE invoice_id = $1 ORDER BY id`,
-    [id]
-  );
-  return { ...invoice.rows[0], line_items: items.rows };
-}
-
-// Validate :id on every route that has it
-router.param('id', (req, res, next, value) => {
-  const id = Number(value);
-  if (!Number.isInteger(id) || id < 1 || id > MAX_INT) {
-    return res.status(400).json({ error: 'Invalid id' });
-  }
-  req.invoiceId = id;
-  next();
-});
-
 // Read one invoice
 router.get('/:id', asyncHandler(async (req, res) => {
   const invoice = await findInvoice(req.invoiceId);
   if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
   res.json(invoice);
+}));
+
+// Change an invoice's status
+router.patch('/:id/status', asyncHandler(async (req, res) => {
+  const data = validateBody(statusSchema, req, res);
+  if (!data) return;
+
+  const current = await pool.query('SELECT status FROM invoices WHERE id = $1', [req.invoiceId]);
+  if (current.rows.length === 0) {
+    return res.status(404).json({ error: 'Invoice not found' });
+  }
+
+  const from = current.rows[0].status;
+  if (!canTransition(from, data.status)) {
+    return res.status(409).json({ error: `Cannot move invoice from ${from} to ${data.status}` });
+  }
+
+  // "AND status = $3" protects against two requests changing it at the same time
+  const result = await pool.query(
+    'UPDATE invoices SET status = $1 WHERE id = $2 AND status = $3',
+    [data.status, req.invoiceId, from]
+  );
+  if (result.rowCount === 0) {
+    return res.status(409).json({ error: 'Invoice status changed, please retry' });
+  }
+
+  res.json(await findInvoice(req.invoiceId));
 }));
 
 module.exports = router;
