@@ -9,5 +9,23 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data   # keeps data between restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U invoiceflow -d invoiceflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://invoiceflow:invoiceflow@db:5432/invoiceflow   # host is "db", not localhost
+    depends_on:
+      db:
+        condition: service_healthy   # wait until Postgres accepts connections
+    command: sh -c "node src/db/migrate.js && node src/server.js"
+
 volumes:
   pgdata:
