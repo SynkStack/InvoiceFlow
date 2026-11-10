@@ -65,5 +65,22 @@ async function findInvoice(id) {
   return { ...invoice.rows[0], line_items: items.rows };
 }
 
+// Validate :id on every route that has it
+router.param('id', (req, res, next, value) => {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id < 1 || id > MAX_INT) {
+    return res.status(400).json({ error: 'Invalid id' });
+  }
+  req.invoiceId = id;
+  next();
+});
+
+// Read one invoice
+router.get('/:id', asyncHandler(async (req, res) => {
+  const invoice = await findInvoice(req.invoiceId);
+  if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+  res.json(invoice);
+}));
+
 module.exports = router;
 module.exports.findInvoice = findInvoice;
