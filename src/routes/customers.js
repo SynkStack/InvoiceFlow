@@ -1,12 +1,11 @@
 const express = require('express');
 const pool = require('../db/pool');
 const { customerSchema } = require('../schemas/customer');
-
+const asyncHandler = require('../utils/asyncHandler');
+const { validateBody } = require('../utils/validate');
 const router = express.Router();
 
-// Sends async errors to the error middleware instead of hanging the request
-const asyncHandler = (fn) => (req, res, next) =>
-  Promise.resolve(fn(req, res, next)).catch(next);
+
 
 // Runs for every route containing :id; rejects bad ids early
 router.param('id', (req, res, next, value) => {
@@ -18,25 +17,12 @@ router.param('id', (req, res, next, value) => {
   next();
 });
 
-// Returns clean data, or sends a 400 and returns null
-function validate(req, res) {
-  const result = customerSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(400).json({
-      error: 'Validation failed',
-      details: result.error.issues.map((i) => ({
-        field: i.path.join('.'),
-        message: i.message,
-      })),
-    });
-    return null;
-  }
-  return result.data;
-}
+
+
 
 // Create
 router.post('/', asyncHandler(async (req, res) => {
-  const data = validate(req, res);
+  const data = validateBody(customerSchema, req, res);
   if (!data) return;
   try {
     const { rows } = await pool.query(
@@ -67,7 +53,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
 // Update
 router.put('/:id', asyncHandler(async (req, res) => {
-  const data = validate(req, res);
+  const data = validateBody(customerSchema, req, res);
   if (!data) return;
   try {
     const { rows } = await pool.query(
