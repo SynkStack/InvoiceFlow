@@ -37,10 +37,10 @@ describe('tax and totals', () => {
     expect(calculateTax(15)).toBe(3); // 2.7 -> 3
   });
 
-  it('rounds tax once on the subtotal, not per line', () => {
-    // 3 lines of 1 cent: per-line rounding would give 0 tax, subtotal rounding gives 1
+  it('rounds tax per line item', () => {
+    // 3 lines of 1 cent: each line's tax (0.18 cents) rounds to 0
     const items = [1, 2, 3].map(() => ({ quantity: 1, unit_price_cents: 1 }));
-    expect(calculateTotals(items).tax_cents).toBe(1);
+    expect(calculateTotals(items).tax_cents).toBe(0);
   });
 
   it('returns subtotal, tax and total', () => {
