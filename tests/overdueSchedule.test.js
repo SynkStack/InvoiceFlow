@@ -14,7 +14,7 @@ describe('overdue job with the real clock', () => {
     // Due "next week" when this test was written (hard-coded)
     await pool.query(
       `INSERT INTO invoices (customer_id, status, due_date, subtotal_cents, tax_cents, total_cents)
-       VALUES (1, 'sent', '2026-11-05', 1000, 180, 1180)`
+       VALUES (1, 'sent', '2027-01-01', 1000, 180, 1180)`
     );
     expect(await markOverdueInvoices()).toBe(0); // uses today's real date
   });
